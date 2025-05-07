@@ -66,8 +66,7 @@ EmPrIn/
 
 ## 👤 Autor
 
-Adrián Pallardó Bernabé  
-Alumno de Tokio School – Curso de Python + Certificación PCAP
+Adrián Pallardó Bernabé
 
 ---
 
