@@ -69,5 +69,3 @@ EmPrIn/
 Adrián Pallardó Bernabé
 
 ---
-
-Este proyecto forma parte de las prácticas formativas realizadas dentro del curso de programación Python.
