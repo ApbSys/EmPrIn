@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+<div class="jumbotron bg-light p-5 rounded">
+<h1 class="display-4">Store Componentes</h1>
+<p class="lead">Tu tienda de suministros informáticos de confianza.</p>
+<hr class="my-4"/>
+<p>Encuentra los mejores componentes informáticos al mejor precio.</p>
+<a class="btn btn-primary btn-lg" href="{{ url_for('listar_productos') }}" role="button">Ver Productos</a>
+</div>
+<div class="row mt-5">
+<div class="col-md-12">
+<h2 class="mb-4">Productos Destacados</h2>
+</div>
+</div>
+<div class="row">
+        {% for producto in productos %}
+        <div class="col-md-3 mb-4">
+<div class="card h-100">
+                {% if producto.imagen %}
+                <img alt="{{ producto.nombre }}" class="card-img-top" src="{{ url_for('static', filename=producto.imagen) }}" style="height: 180px; object-fit: contain; padding: 10px;"/>
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+<i class="fas fa-microchip fa-4x text-secondary"></i>
+</div>
+                {% endif %}
+                <div class="card-body">
+<h5 class="card-title">{{ producto.nombre }}</h5>
+<p class="card-text text-truncate">{{ producto.descripcion }}</p>
+<p class="card-text text-primary fw-bold">{{ "%.2f"|format(producto.precio_venta) }} €</p>
+</div>
+<div class="card-footer">
+<a class="btn btn-sm btn-outline-primary" href="{{ url_for('ver_producto', producto_id=producto.id) }}">Ver detalles</a>
+                    {% if session.get('usuario_id') %}
+                    <button class="añadir-carrito btn-success btn-sm btn-add-cart btn" data-id="{{ producto.id }}" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio_venta }}">
+<i class="fas fa-cart-plus"></i>
+</button>
+                    {% endif %}
+                </div>
+</div>
+</div>
+        {% endfor %}
+    </div>
+<div class="row mt-5">
+<div class="col-md-4 mb-4">
+<div class="card border-primary h-100">
+<div class="card-body text-center">
+<i class="fas fa-shipping-fast fa-3x mb-3 text-primary"></i>
+<h5 class="card-title">Envío Rápido</h5>
+<p class="card-text">Envíos en 24-48 horas a toda la península.</p>
+</div>
+</div>
+</div>
+<div class="col-md-4 mb-4">
+<div class="card border-success h-100">
+<div class="card-body text-center">
+<i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+<h5 class="card-title">Garantía de calidad</h5>
+<p class="card-text">Todos nuestros productos tienen garantía de 2 años.</p>
+</div>
+</div>
+</div>
+<div class="col-md-4 mb-4">
+<div class="card border-info h-100">
+<div class="card-body text-center">
+<i class="fas fa-headset fa-3x mb-3 text-info"></i>
+<h5 class="card-title">Soporte Técnico</h5>
+<p class="card-text">Servicio de asistencia técnica profesional.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}

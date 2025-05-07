@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Estadísticas - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-bar me-2"></i>Mis Estadísticas de Compra</h1>
+        <div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary" id="btn-mes">Últimos 30 días</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-trimestre">Últimos 3 meses</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-anio">Último año</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total Gastado</h6>
+                            <h3 class="card-text" id="total-gastado">€ 0.00</h3>
+                        </div>
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Productos Comprados</h6>
+                            <h3 class="card-text" id="total-productos">0</h3>
+                        </div>
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Pedidos Realizados</h6>
+                            <h3 class="card-text" id="total-pedidos">0</h3>
+                        </div>
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficas -->
+    <div class="row">
+        <!-- Compras mensuales -->
+        <div class="col-md-8 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Historial de Compras</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafica-compras"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Productos más comprados -->
+        <div class="col-md-4 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Productos Más Comprados</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafica-productos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Últimos pedidos -->
+        <div class="col-md-12 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Últimos Pedidos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fecha</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Productos</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-ultimos-pedidos">
+                                <tr>
+                                    <td colspan="5" class="text-center">Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referencias a las gráficas
+        let graficaCompras, graficaProductos;
+        
+        // Cargar datos iniciales (30 días)
+        cargarDatos('30');
+        
+        // Eventos para los botones de período
+        document.getElementById('btn-mes').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('30');
+        });
+        
+        document.getElementById('btn-trimestre').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('90');
+        });
+        
+        document.getElementById('btn-anio').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('365');
+        });
+        
+        // Activar el botón de "Últimos 30 días" por defecto
+        document.getElementById('btn-mes').click();
+        
+        // Función para cargar los datos de las estadísticas
+        function cargarDatos(dias) {
+            // Cargar ventas mensuales del cliente
+            fetch(`/api/estadisticas/ventas-mensuales?dias=${dias}`)
+                .then(response => response.json())
+                .then(data => {
+                    actualizarGraficaCompras(data);
+                    
+                    // Actualizar total gastado
+                    const totalGastado = data.reduce((suma, item) => suma + item.total, 0);
+                    document.getElementById('total-gastado').textContent = `€ ${totalGastado.toFixed(2)}`;
+                });
+            
+            // Cargar productos más comprados por el cliente
+            fetch(`/api/estadisticas/productos-mas-vendidos?dias=${dias}`)
+                .then(response => response.json())
+                .then(data => {
+                    actualizarGraficaProductos(data);
+                    
+                    // Actualizar total de productos comprados
+                    const totalProductos = data.reduce((suma, item) => suma + item.cantidad, 0);
+                    document.getElementById('total-productos').textContent = totalProductos;
+                });
+            
+            // Cargar últimos pedidos
+            fetch('/api/ventas')
+                .then(response => response.json())
+                .then(data => {
+                    // CORRECCIÓN: Actualizar el contador de pedidos con el número real
+                    document.getElementById('total-pedidos').textContent = data.length;
+                    
+                    // Mostrar solo los 5 más recientes en la tabla
+                    actualizarTablaPedidos(data.slice(0, 5));
+                })
+                .catch(() => {
+                    // Si la API no está disponible, intentamos una solución alternativa
+                    fetch('/listar_ventas')
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            
+                            // Extraer la información de la tabla
+                            const filas = Array.from(doc.querySelectorAll('table tbody tr'));
+                            const pedidos = [];
+                            
+                            filas.forEach(fila => {
+                                const celdas = fila.querySelectorAll('td');
+                                if (celdas.length >= 3) {
+                                    pedidos.push({
+                                        id: celdas[0].textContent.trim(),
+                                        fecha: celdas[1].textContent.trim(),
+                                        total: celdas[2].textContent.trim()
+                                    });
+                                }
+                            });
+                            
+                            // Actualizar el contador con el número real de pedidos
+                            document.getElementById('total-pedidos').textContent = pedidos.length;
+                            
+                            // Mostrar solo los 5 más recientes
+                            actualizarTablaPedidos(pedidos.slice(0, 5));
+                        });
+                });
+        }
+        
+        // Función para actualizar la gráfica de compras mensuales
+        function actualizarGraficaCompras(data) {
+            const ctx = document.getElementById('grafica-compras').getContext('2d');
+            
+            // Destruir gráfica existente si hay una
+            if (graficaCompras) {
+                graficaCompras.destroy();
+            }
+            
+            // Preparar datos para la gráfica
+            const labels = data.map(item => item.mes);
+            const valores = data.map(item => item.total);
+            
+            // Crear la nueva gráfica
+            graficaCompras = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Compras (€)',
+                        data: valores,
+                        backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `€ ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar la gráfica de productos más comprados
+        function actualizarGraficaProductos(data) {
+            const ctx = document.getElementById('grafica-productos').getContext('2d');
+            
+            // Destruir gráfica existente si hay una
+            if (graficaProductos) {
+                graficaProductos.destroy();
+            }
+            
+            // Limitar a los 5 productos más comprados para mejor visualización
+            const datosLimitados = data.slice(0, 5);
+            
+            // Preparar datos para la gráfica
+            const labels = datosLimitados.map(item => item.producto);
+            const valores = datosLimitados.map(item => item.cantidad);
+            
+            // Generar colores
+            const colores = [
+                'rgba(40, 167, 69, 0.7)',
+                'rgba(32, 201, 151, 0.7)',
+                'rgba(23, 162, 184, 0.7)',
+                'rgba(13, 110, 253, 0.7)',
+                'rgba(111, 66, 193, 0.7)'
+            ];
+            
+            // Crear la nueva gráfica
+            graficaProductos = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: colores,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar la tabla de pedidos
+        function actualizarTablaPedidos(pedidos) {
+            const tbody = document.getElementById('tabla-ultimos-pedidos');
+            tbody.innerHTML = '';
+            
+            if (pedidos.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="5" class="text-center">No hay pedidos registrados</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+            
+            pedidos.forEach(pedido => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${pedido.id}</td>
+                    <td>${pedido.fecha}</td>
+                    <td class="text-end">${pedido.total}</td>
+                    <td class="text-center">
+                        <span class="badge bg-primary">Varios</span>
+                    </td>
+                    <td class="text-center">
+                        <a href="/ventas/${pedido.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> Ver detalles
+                        </a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    });
+</script>
+{% endblock %}

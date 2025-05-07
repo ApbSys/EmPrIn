@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Compra - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_compras') }}">Compras</a></li>
+            <li class="breadcrumb-item active">Registrar Compra</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-truck-loading me-2"></i>Registrar Nueva Compra</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('crear_compra') }}" id="form-compra">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="proveedor_id" class="form-label">Proveedor *</label>
+                            <select class="form-select" id="proveedor_id" name="proveedor_id" required>
+                                <option value="">Seleccione un proveedor</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}" data-descuento="{{ proveedor.porcentaje_descuento }}" data-iva="{{ proveedor.iva }}">
+                                    {{ proveedor.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="fecha_compra" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fecha_compra" name="fecha_compra" value="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="border-bottom pb-2">Productos</h5>
+                
+                <div class="table-responsive mb-3">
+                    <table class="table" id="tabla-productos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th style="width: 150px;">Precio Unitario</th>
+                                <th style="width: 100px;">Cantidad</th>
+                                <th style="width: 150px;">Subtotal</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="fila-template" class="fila-producto">
+                                <td>
+                                    <select class="form-select producto-select" name="producto_id[]" required>
+                                        <option value="">Seleccione un producto</option>
+                                        {% for producto in productos %}
+                                        <option value="{{ producto.id }}" data-precio="{{ producto.precio_compra }}">
+                                            {{ producto.nombre }} ({{ producto.referencia }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control precio-unitario" name="precio_unitario[]" min="0" step="0.01" required>
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control cantidad" name="cantidad[]" min="1" value="1" required>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control subtotal" readonly>
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm eliminar-fila">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">Total:</td>
+                                <td>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="total-compra" readonly>
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-outline-primary mb-4" id="agregar-producto">
+                    <i class="fas fa-plus me-1"></i> Agregar Producto
+                </button>
+                
+                <input type="hidden" id="productos_datos" name="productos_datos" value="">
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('listar_compras') }}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary" id="btn-guardar">Registrar Compra</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let productosDisponibles = [];
+
+        // Eliminar la fila template inicial
+        const filaTemplate = document.getElementById('fila-template');
+        filaTemplate.remove();
+
+        // Agregar primera fila
+        agregarFilaProducto();
+
+        // Cargar productos del proveedor seleccionado
+        document.getElementById('proveedor_id').addEventListener('change', function () {
+            const proveedorId = this.value;
+            productosDisponibles = [];
+            fetch(`/api/productos-proveedor?id=${proveedorId}`)
+                .then(res => res.json())
+                .then(data => {
+                    productosDisponibles = data;
+                    // Vaciar tabla actual y agregar una fila nueva
+                    document.querySelector('#tabla-productos tbody').innerHTML = '';
+                    agregarFilaProducto();
+                });
+        });
+
+        // Botón para agregar más productos
+        document.getElementById('agregar-producto').addEventListener('click', function () {
+            agregarFilaProducto();
+        });
+
+        // Evento submit del formulario
+        document.getElementById('form-compra').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const filas = document.querySelectorAll('.fila-producto');
+            if (filas.length === 0) {
+                toastr.error('Debe agregar al menos un producto');
+                return;
+            }
+
+            const productos = [];
+            let valid = true;
+
+            filas.forEach(fila => {
+                const productoSelect = fila.querySelector('.producto-select');
+                const precioInput = fila.querySelector('.precio-unitario');
+                const cantidadInput = fila.querySelector('.cantidad');
+
+                if (!productoSelect.value || !precioInput.value || !cantidadInput.value) {
+                    valid = false;
+                    return;
+                }
+
+                productos.push({
+                    id: productoSelect.value,
+                    precio: parseFloat(precioInput.value),
+                    cantidad: parseInt(cantidadInput.value)
+                });
+            });
+
+            if (!valid) {
+                toastr.error('Complete todos los campos requeridos');
+                return;
+            }
+
+            document.getElementById('productos_datos').value = JSON.stringify(productos);
+            this.submit();
+        });
+
+        function agregarFilaProducto() {
+            const tbody = document.querySelector('#tabla-productos tbody');
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.classList.add('fila-producto');
+
+            // Producto (select)
+            const tdProducto = document.createElement('td');
+            const select = document.createElement('select');
+            select.classList.add('form-select', 'producto-select');
+            select.name = 'producto_id[]';
+            select.required = true;
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Seleccione un producto';
+            select.appendChild(defaultOption);
+
+            productosDisponibles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.nombre;
+                opt.dataset.precio = p.precio;
+                select.appendChild(opt);
+            });
+
+            tdProducto.appendChild(select);
+
+            // Precio
+            const tdPrecio = document.createElement('td');
+            tdPrecio.innerHTML = `
+                <div class="input-group">
+                    <input type="number" class="form-control precio-unitario" name="precio_unitario[]" min="0" step="0.01" required>
+                    <span class="input-group-text">€</span>
+                </div>
+            `;
+
+            // Cantidad
+            const tdCantidad = document.createElement('td');
+            tdCantidad.innerHTML = `
+                <input type="number" class="form-control cantidad" name="cantidad[]" min="1" value="1" required>
+            `;
+
+            // Subtotal
+            const tdSubtotal = document.createElement('td');
+            tdSubtotal.innerHTML = `
+                <div class="input-group">
+                    <input type="text" class="form-control subtotal" readonly>
+                    <span class="input-group-text">€</span>
+                </div>
+            `;
+
+            // Botón eliminar
+            const tdEliminar = document.createElement('td');
+            tdEliminar.classList.add('text-center');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.classList.add('btn', 'btn-danger', 'btn-sm', 'eliminar-fila');
+            btn.innerHTML = '<i class="fas fa-times"></i>';
+            tdEliminar.appendChild(btn);
+
+            // Armar fila
+            nuevaFila.appendChild(tdProducto);
+            nuevaFila.appendChild(tdPrecio);
+            nuevaFila.appendChild(tdCantidad);
+            nuevaFila.appendChild(tdSubtotal);
+            nuevaFila.appendChild(tdEliminar);
+
+            // Agregar fila al tbody
+            tbody.appendChild(nuevaFila);
+
+            // Eventos
+            select.addEventListener('change', function () {
+                const precio = this.options[this.selectedIndex].dataset.precio;
+                if (precio) {
+                    nuevaFila.querySelector('.precio-unitario').value = precio;
+                    actualizarSubtotal(nuevaFila);
+                }
+            });
+
+            nuevaFila.querySelector('.precio-unitario').addEventListener('input', () => actualizarSubtotal(nuevaFila));
+            nuevaFila.querySelector('.cantidad').addEventListener('input', () => actualizarSubtotal(nuevaFila));
+            btn.addEventListener('click', () => {
+                tbody.removeChild(nuevaFila);
+                actualizarTotal();
+                if (tbody.querySelectorAll('.fila-producto').length === 0) agregarFilaProducto();
+            });
+        }
+
+        function actualizarSubtotal(fila) {
+            const precio = parseFloat(fila.querySelector('.precio-unitario').value) || 0;
+            const cantidad = parseInt(fila.querySelector('.cantidad').value) || 0;
+            const subtotal = precio * cantidad;
+            fila.querySelector('.subtotal').value = subtotal.toFixed(2);
+            actualizarTotal();
+        }
+
+        function actualizarTotal() {
+            const subtotales = document.querySelectorAll('.subtotal');
+            let total = 0;
+            subtotales.forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById('total-compra').value = total.toFixed(2);
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Producto - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_productos') }}">Productos</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('ver_producto', producto_id=producto.id) }}">{{ producto.nombre }}</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Editar Producto</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('editar_producto', producto_id=producto.id) }}" enctype="multipart/form-data">
+                <div class="row">
+                    <!-- Columna izquierda -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre del Producto *</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" value="{{ producto.nombre }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="referencia" class="form-label">Referencia *</label>
+                            <input type="text" class="form-control" id="referencia" name="referencia" value="{{ producto.referencia }}" required>
+                            <div class="form-text">Código o referencia única del producto</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="4">{{ producto.descripcion }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="precio_compra" class="form-label">Precio de Compra (€) *</label>
+                                    <input type="number" class="form-control" id="precio_compra" name="precio_compra" min="0" step="0.01" value="{{ producto.precio_compra }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="precio_venta" class="form-label">Precio de Venta (€) *</label>
+                                    <input type="number" class="form-control" id="precio_venta" name="precio_venta" min="0" step="0.01" value="{{ producto.precio_venta }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna derecha -->
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="stock_actual" class="form-label">Stock Actual *</label>
+                                    <input type="number" class="form-control" id="stock_actual" name="stock_actual" min="0" value="{{ producto.stock_actual }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="stock_minimo" class="form-label">Stock Mínimo *</label>
+                                    <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" min="0" value="{{ producto.stock_minimo }}" required>
+                                    <div class="form-text">Cantidad mínima antes de alertar</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="ubicacion_almacen" class="form-label">Ubicación en Almacén</label>
+                            <input type="text" class="form-control" id="ubicacion_almacen" name="ubicacion_almacen" value="{{ producto.ubicacion_almacen }}">
+                            <div class="form-text">Ejemplo: Pasillo 3, Estantería B, Nivel 2</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="categoria" class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="categoria" name="categoria" value="{{ producto.categoria }}" list="categorias">
+                            <datalist id="categorias">
+                                <option value="Procesadores">
+                                <option value="Placas Base">
+                                <option value="Memoria RAM">
+                                <option value="Tarjetas Gráficas">
+                                <option value="Almacenamiento">
+                                <option value="Periféricos">
+                                <option value="Monitores">
+                                <option value="Redes">
+                            </datalist>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="proveedor_id" class="form-label">Proveedor *</label>
+                            <select class="form-select" id="proveedor_id" name="proveedor_id" required>
+                                <option value="">Seleccione un proveedor</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}" {% if proveedor.id == producto.proveedor_id %}selected{% endif %}>{{ proveedor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="imagen" class="form-label">Imagen del Producto</label>
+                            {% if producto.imagen %}
+                            <div class="mb-2">
+                                <img src="{{ url_for('static', filename=producto.imagen) }}" alt="{{ producto.nombre }}" class="img-thumbnail" style="height: 100px;">
+                                <div class="form-text">Imagen actual. Sube una nueva para reemplazarla.</div>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+                            <div class="form-text">Formatos aceptados: JPG, PNG, GIF (máx. 2MB)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{{ url_for('ver_producto', producto_id=producto.id) }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Validar que el precio de venta sea mayor que el de compra
+        const precioCompra = document.getElementById('precio_compra');
+        const precioVenta = document.getElementById('precio_venta');
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(event) {
+            const compra = parseFloat(precioCompra.value) || 0;
+            const venta = parseFloat(precioVenta.value) || 0;
+            
+            if (venta <= compra) {
+                event.preventDefault();
+                toastr.error('El precio de venta debe ser mayor que el precio de compra');
+            }
+        });
+    });
+</script>
+{% endblock %}

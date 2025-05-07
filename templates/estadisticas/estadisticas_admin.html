@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+
+{% block title %}Estadísticas - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-line me-2"></i>Panel de Estadísticas</h1>
+        <div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary" id="btn-mes">Últimos 30 días</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-trimestre">Últimos 3 meses</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-anio">Último año</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Ventas Totales</h6>
+                            <h3 class="card-text" id="total-ventas">€ 0.00</h3>
+                        </div>
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Beneficio</h6>
+                            <h3 class="card-text" id="total-beneficio">€ 0.00</h3>
+                        </div>
+                        <i class="fas fa-euro-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Productos Vendidos</h6>
+                            <h3 class="card-text" id="total-productos">0</h3>
+                        </div>
+                        <i class="fas fa-boxes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Clientes</h6>
+                            <h3 class="card-text" id="total-clientes">0</h3>
+                        </div>
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficas -->
+    <div class="row">
+        <!-- Ventas mensuales -->
+        <div class="col-md-8 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ventas Mensuales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafica-ventas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Productos más vendidos -->
+        <div class="col-md-4 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Productos Más Vendidos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafica-productos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Beneficio por proveedor -->
+        <div class="col-md-6 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Beneficio por Proveedor</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafica-proveedores"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stock crítico -->
+        <div class="col-md-6 mb-4">
+            <div class="card estadistica-card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Productos con Stock Crítico</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Stock Actual</th>
+                                    <th class="text-center">Stock Mínimo</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-stock-critico">
+                                <tr>
+                                    <td colspan="4" class="text-center">Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referencias a las gráficas
+        let graficaVentas, graficaProductos, graficaProveedores;
+        
+        // Cargar datos iniciales (30 días)
+        cargarDatos('30');
+        
+        // Eventos para los botones de período
+        document.getElementById('btn-mes').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('30');
+        });
+        
+        document.getElementById('btn-trimestre').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('90');
+        });
+        
+        document.getElementById('btn-anio').addEventListener('click', function() {
+            document.querySelectorAll('.btn-outline-primary').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            cargarDatos('365');
+        });
+        
+        // Activar el botón de "Últimos 30 días" por defecto
+        document.getElementById('btn-mes').click();
+        
+        // Función para cargar los datos de las estadísticas
+        function cargarDatos(dias) {
+            // Cargar ventas mensuales
+            fetch(`/api/estadisticas/ventas-mensuales?dias=${dias}`)
+                .then(response => response.json())
+                .then(data => {
+                    actualizarGraficaVentas(data);
+                    
+                    // Actualizar total de ventas
+                    const totalVentas = data.reduce((suma, item) => suma + item.total, 0);
+                    document.getElementById('total-ventas').textContent = `€ ${totalVentas.toFixed(2)}`;
+                });
+            
+            // Cargar productos más vendidos
+            fetch(`/api/estadisticas/productos-mas-vendidos?dias=${dias}`)
+                .then(response => response.json())
+                .then(data => {
+                    actualizarGraficaProductos(data);
+                    
+                    // Actualizar total de productos vendidos
+                    const totalProductos = data.reduce((suma, item) => suma + item.cantidad, 0);
+                    document.getElementById('total-productos').textContent = totalProductos;
+                });
+            
+            // Cargar beneficio por proveedor
+            fetch(`/api/estadisticas/beneficios-por-proveedor?dias=${dias}`)
+                .then(response => response.json())
+                .then(data => {
+                    actualizarGraficaProveedores(data);
+                    
+                    // Actualizar total de beneficio
+                    const totalBeneficio = data.reduce((suma, item) => suma + item.beneficio, 0);
+                    document.getElementById('total-beneficio').textContent = `€ ${totalBeneficio.toFixed(2)}`;
+                });
+            
+            // Cargar clientes únicos
+        fetch('/api/estadisticas/clientes')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('total-clientes').textContent = data.total;
+            });
+
+        // Cargar productos con stock crítico
+            fetch('/api/estadisticas/stock-critico')
+                .then(response => response.json())
+                .then(data => {
+                    actualizarTablaStockCritico(data);
+                });
+        }
+        
+        // Función para actualizar la gráfica de ventas mensuales
+        function actualizarGraficaVentas(data) {
+            const ctx = document.getElementById('grafica-ventas').getContext('2d');
+            
+            // Destruir gráfica existente si hay una
+            if (graficaVentas) {
+                graficaVentas.destroy();
+            }
+            
+            // Preparar datos para la gráfica
+            const labels = data.map(item => item.mes);
+            const valores = data.map(item => item.total);
+            
+            // Crear la nueva gráfica
+            graficaVentas = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas (€)',
+                        data: valores,
+                        backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `€ ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar la gráfica de productos más vendidos
+        function actualizarGraficaProductos(data) {
+            const ctx = document.getElementById('grafica-productos').getContext('2d');
+            
+            // Destruir gráfica existente si hay una
+            if (graficaProductos) {
+                graficaProductos.destroy();
+            }
+            
+            // Limitar a los 5 productos más vendidos para mejor visualización
+            const datosLimitados = data.slice(0, 5);
+            
+            // Preparar datos para la gráfica
+            const labels = datosLimitados.map(item => item.producto);
+            const valores = datosLimitados.map(item => item.cantidad);
+            
+            // Generar colores
+            const colores = [
+                'rgba(40, 167, 69, 0.7)',
+                'rgba(32, 201, 151, 0.7)',
+                'rgba(23, 162, 184, 0.7)',
+                'rgba(13, 110, 253, 0.7)',
+                'rgba(111, 66, 193, 0.7)'
+            ];
+            
+            // Crear la nueva gráfica
+            graficaProductos = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: colores,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar la gráfica de beneficios por proveedor
+        function actualizarGraficaProveedores(data) {
+            const ctx = document.getElementById('grafica-proveedores').getContext('2d');
+            
+            // Destruir gráfica existente si hay una
+            if (graficaProveedores) {
+                graficaProveedores.destroy();
+            }
+            
+            // Limitar a los 5 proveedores con más beneficio
+            const datosLimitados = data.slice(0, 5);
+            
+            // Preparar datos para la gráfica
+            const labels = datosLimitados.map(item => item.proveedor);
+            const valores = datosLimitados.map(item => item.beneficio);
+            
+            // Crear la nueva gráfica
+            graficaProveedores = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Beneficio (€)',
+                        data: valores,
+                        backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                        borderColor: 'rgba(23, 162, 184, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `€ ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Función para actualizar la tabla de stock crítico
+        function actualizarTablaStockCritico(data) {
+            const tbody = document.getElementById('tabla-stock-critico');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="4" class="text-center">No hay productos con stock crítico</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+            
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Determinar clase CSS según el porcentaje
+                let claseEstado = '';
+                let textoEstado = '';
+                
+                if (item.porcentaje <= 50) {
+                    claseEstado = 'bg-danger text-white';
+                    textoEstado = 'Crítico';
+                } else if (item.porcentaje <= 90) {
+                    claseEstado = 'bg-warning';
+                    textoEstado = 'Bajo';
+                }
+                
+                tr.innerHTML = `
+                    <td>${item.producto}</td>
+                    <td class="text-center">${item.actual}</td>
+                    <td class="text-center">${item.minimo}</td>
+                    <td class="text-center">
+                        <span class="badge ${claseEstado}">${textoEstado} (${item.porcentaje}%)</span>
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+    });
+</script>
+{% endblock %}

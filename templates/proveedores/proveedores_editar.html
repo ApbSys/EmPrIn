@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Proveedor - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_proveedores') }}">Proveedores</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('ver_proveedor', proveedor_id=proveedor.id) }}">{{ proveedor.nombre }}</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Editar Proveedor</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}">
+                <div class="row">
+                    <!-- Columna izquierda -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre de la Empresa *</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" value="{{ proveedor.nombre }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cif" class="form-label">CIF/NIF *</label>
+                            <input type="text" class="form-control" id="cif" name="cif" value="{{ proveedor.cif }}" required>
+                            <div class="form-text">Número de identificación fiscal</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="direccion" name="direccion" value="{{ proveedor.direccion }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono" value="{{ proveedor.telefono }}">
+                        </div>
+                    </div>
+                    
+                    <!-- Columna derecha -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ proveedor.email }}">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="porcentaje_descuento" class="form-label">% Descuento</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="porcentaje_descuento" name="porcentaje_descuento" min="0" max="100" step="0.01" value="{{ proveedor.porcentaje_descuento }}">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">Porcentaje de descuento que nos aplica</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="iva" class="form-label">IVA</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="iva" name="iva" min="0" max="100" step="0.01" value="{{ proveedor.iva }}">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">Tipo de IVA aplicable</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notas" class="form-label">Notas</label>
+                            <textarea class="form-control" id="notas" name="notas" rows="4">{{ proveedor.notas }}</textarea>
+                            <div class="form-text">Información adicional, contactos, etc.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{{ url_for('ver_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

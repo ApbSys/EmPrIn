@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Pedidos - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            {% if session.get('es_admin') %}
+            <i class="fas fa-clipboard-list me-2"></i>Lista de Ventas
+            {% else %}
+            <i class="fas fa-shopping-bag me-2"></i>Mis Pedidos
+            {% endif %}
+        </h1>
+        <a href="{{ url_for('crear_venta') }}" class="btn btn-primary">
+            <i class="fas fa-cart-plus me-1"></i> Nuevo Pedido
+        </a>
+    </div>
+    
+    <!-- Filtros (opcional) -->
+    {% if session.get('es_admin') %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('listar_ventas') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde">
+                </div>
+                <div class="col-md-4">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Tabla de ventas -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha</th>
+                            {% if session.get('es_admin') %}
+                            <th>Cliente</th>
+                            {% endif %}
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if ventas %}
+                            {% for venta in ventas %}
+                            <tr>
+                                <td>{{ venta.id }}</td>
+                                <td>{{ venta.fecha|datetime('%d/%m/%Y %H:%M') }}</td>
+                                {% if session.get('es_admin') %}
+                                <td>{{ venta.cliente.username }}</td>
+                                {% endif %}
+                                <td class="text-end">{{ "%.2f"|format(venta.total) }} €</td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('ver_venta', venta_id=venta.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver detalles
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="{% if session.get('es_admin') %}5{% else %}4{% endif %}" class="text-center">
+                                    No hay pedidos registrados
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

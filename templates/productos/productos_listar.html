@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Productos - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-microchip me-2"></i>Catálogo de Productos</h1>
+        {% if session.get('es_admin') %}
+        <a class="btn btn-success" href="{{ url_for('crear_producto') }}">
+            <i class="fas fa-plus me-1"></i> Nuevo Producto
+        </a>
+        {% endif %}
+    </div>
+    <!-- Filtros y búsqueda -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form action="{{ url_for('listar_productos') }}" class="row g-3" method="GET">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input class="form-control" name="busqueda" placeholder="Buscar por nombre o referencia" type="text" value="{{ busqueda }}"/>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="categoria">
+                        <option value="">Todas las categorías</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}" {% if cat == categoria_actual %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Lista de productos -->
+    <div class="row">
+        {% if productos %}
+            {% for producto in productos %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 producto-card">
+                    {% if producto.imagen %}
+                    <img alt="{{ producto.nombre }}" class="card-img-top producto-imagen" src="{{ url_for('static', filename=producto.imagen) }}"/>
+                    {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center producto-imagen">
+                        <i class="fas fa-microchip fa-3x text-secondary"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text small text-truncate">{{ producto.descripcion }}</p>
+                        <p class="card-text">
+                            <span class="badge bg-primary">Ref: {{ producto.referencia }}</span>
+                            {% if producto.categoria %}
+                            <span class="badge bg-secondary">{{ producto.categoria }}</span>
+                            {% endif %}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-primary fw-bold">{{ "%.2f"|format(producto.precio_venta) }} €</span>
+                            <span class="badge {% if producto.stock_actual > producto.stock_minimo %}bg-success{% elif producto.stock_actual > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ producto.stock_actual }} en stock
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ver_producto', producto_id=producto.id) }}">
+                                <i class="fas fa-eye me-1"></i> Ver
+                            </a>
+                            {% if session.get('usuario_id') and producto.stock_actual > 0 %}
+                            <button type="button" class="btn btn-sm btn-success btn-add-cart" 
+                                    data-id="{{ producto.id }}" 
+                                    data-nombre="{{ producto.nombre }}" 
+                                    data-precio="{{ producto.precio_venta }}">
+                                <i class="fas fa-cart-plus me-1"></i> Añadir
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No se encontraron productos con los criterios seleccionados.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Página de productos cargada - inicializando botones de carrito');
+        
+        // Registrar eventos para botones de añadir al carrito
+        document.querySelectorAll('.btn-add-cart').forEach(function(boton) {
+            boton.addEventListener('click', function(event) {
+                event.preventDefault();
+                
+                const id = this.dataset.id;
+                const nombre = this.dataset.nombre;
+                const precio = parseFloat(this.dataset.precio);
+                
+                console.log('Añadiendo al carrito:', id, nombre, precio);
+                
+                // Obtener carrito actual
+                let carrito = [];
+                try {
+                    carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+                    if (!Array.isArray(carrito)) carrito = [];
+                } catch (e) {
+                    console.error('Error al leer carrito:', e);
+                    carrito = [];
+                }
+                
+                // Verificar si el producto ya está en el carrito
+                const productoExistente = carrito.find(item => item.id === id);
+                
+                if (productoExistente) {
+                    productoExistente.cantidad += 1;
+                } else {
+                    carrito.push({
+                        id: id,
+                        nombre: nombre,
+                        precio: precio,
+                        cantidad: 1
+                    });
+                }
+                
+                // Guardar carrito actualizado
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                
+                // Actualizar contador
+                if (typeof actualizarContadorCarrito === 'function') {
+                    actualizarContadorCarrito();
+                } else {
+                    const contador = document.getElementById('carrito-contador');
+                    if (contador) {
+                        const total = carrito.reduce((suma, item) => suma + item.cantidad, 0);
+                        contador.textContent = total;
+                    }
+                }
+                
+                // Mostrar notificación
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(`${nombre} añadido al carrito`);
+                } else {
+                    alert(`${nombre} añadido al carrito`);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

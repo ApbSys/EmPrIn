@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalles de Pedido #{{ venta.id }} - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_ventas') }}">
+                {% if session.get('es_admin') %}Ventas{% else %}Mis Pedidos{% endif %}
+            </a></li>
+            <li class="breadcrumb-item active">Pedido #{{ venta.id }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-receipt me-2"></i>Detalles del Pedido #{{ venta.id }}
+            </h4>
+            <div>
+                <a href="{{ url_for('listar_ventas') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2">Información del Pedido</h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <th style="width: 150px;">Número:</th>
+                            <td>#{{ venta.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Fecha:</th>
+                            <td>{{ venta.fecha|datetime('%d/%m/%Y %H:%M') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Cliente:</th>
+                            <td>{{ venta.cliente.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ venta.cliente.email }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2">Resumen del Pedido</h5>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Subtotal:</span>
+                                <span>{{ "%.2f"|format(venta.total / 1.21) }} €</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>IVA (21%):</span>
+                                <span>{{ "%.2f"|format(venta.total - (venta.total / 1.21)) }} €</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Total:</span>
+                                <span class="fw-bold fs-4 text-primary">{{ "%.2f"|format(venta.total) }} €</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="border-bottom pb-2">Productos</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-end">Precio Unitario</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in detalles %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('ver_producto', producto_id=detalle.producto.id) }}">
+                                    {{ detalle.producto.nombre }}
+                                </a>
+                            </td>
+                            <td class="text-end">{{ "%.2f"|format(detalle.precio_unitario) }} €</td>
+                            <td class="text-center">{{ detalle.cantidad }}</td>
+                            <td class="text-end">{{ "%.2f"|format(detalle.precio_unitario * detalle.cantidad) }} €</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td class="text-end fw-bold">{{ "%.2f"|format(venta.total) }} €</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-end mt-3">
+                <a href="{{ url_for('crear_venta') }}" class="btn btn-success me-2">
+                    <i class="fas fa-cart-plus me-1"></i> Nuevo Pedido
+                </a>
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    localStorage.removeItem('carrito');
+    if (typeof actualizarContadorCarrito === 'function') {
+        actualizarContadorCarrito();
+    }
+</script>
+{% endblock %}

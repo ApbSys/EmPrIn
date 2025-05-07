@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+
+{% block title %}Carrito de Compra - Store Componentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('listar_productos') }}">Productos</a></li>
+            <li class="breadcrumb-item active">Carrito de Compra</li>
+        </ol>
+    </nav>
+    
+    <h1 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Mi Carrito</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table" id="tabla-carrito">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-end">Precio</th>
+                            <th class="text-center" style="width: 150px;">Cantidad</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-center" style="width: 80px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Los datos serán cargados dinámicamente por JavaScript -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td class="text-end fw-bold" id="carrito-total">0.00 €</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+                <div>
+                    <a href="{{ url_for('listar_productos') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-1"></i> Seguir Comprando
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" id="vaciar-carrito">
+                        <i class="fas fa-trash me-1"></i> Vaciar Carrito
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('crear_venta') }}" id="form-finalizar-compra">
+                    <input type="hidden" id="carrito_datos" name="carrito_datos" value="">
+                    <button type="submit" class="btn btn-success" id="finalizar-compra" disabled>
+                        <i class="fas fa-check me-1"></i> Finalizar Compra
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h3>Productos Recomendados</h3>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for producto in productos[:4] %}
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                {% if producto.imagen %}
+                <img src="{{ url_for('static', filename=producto.imagen) }}" class="card-img-top producto-imagen" alt="{{ producto.nombre }}">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center producto-imagen">
+                    <i class="fas fa-microchip fa-3x text-secondary"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                    <p class="card-text text-truncate">{{ producto.descripcion }}</p>
+                    <p class="card-text text-primary fw-bold">{{ "%.2f"|format(producto.precio_venta) }} €</p>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('ver_producto', producto_id=producto.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                        <button type="button" class="btn btn-sm btn-success btn-add-cart-recomendado" 
+                                data-id="{{ producto.id }}" 
+                                data-nombre="{{ producto.nombre }}" 
+                                data-precio="{{ producto.precio_venta }}">
+                            <i class="fas fa-cart-plus"></i> Añadir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Página de carrito cargada');
+        
+        // Inicializar la tabla del carrito
+        actualizarTablaCarrito();
+        
+        // Añadir evento al botón de vaciar carrito
+        const btnVaciarCarrito = document.getElementById('vaciar-carrito');
+        if (btnVaciarCarrito) {
+            btnVaciarCarrito.addEventListener('click', function() {
+                vaciarCarrito();
+            });
+        }
+        
+        // Añadir eventos a los botones de añadir carrito de productos recomendados
+        document.querySelectorAll('.btn-add-cart-recomendado').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const nombre = this.dataset.nombre;
+                const precio = parseFloat(this.dataset.precio);
+                
+                console.log(`Añadiendo producto recomendado: ${nombre}`);
+                
+                // Obtener carrito actual
+                let carrito = [];
+                try {
+                    carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+                    if (!Array.isArray(carrito)) carrito = [];
+                } catch (e) {
+                    console.error("Error al leer carrito:", e);
+                    carrito = [];
+                }
+                
+                // Verificar si el producto ya está en el carrito
+                const productoExistente = carrito.find(item => item.id === id);
+                
+                if (productoExistente) {
+                    productoExistente.cantidad += 1;
+                } else {
+                    carrito.push({
+                        id: id,
+                        nombre: nombre,
+                        precio: precio,
+                        cantidad: 1
+                    });
+                }
+                
+                // Guardar carrito actualizado
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                
+                // Actualizar contador
+                actualizarContadorCarrito();
+                
+                // Actualizar tabla del carrito
+                actualizarTablaCarrito();
+                
+                // Mostrar notificación
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(`${nombre} añadido al carrito`);
+                }
+            });
+        });
+        
+        // Escuchar eventos de storage para actualizaciones desde otras páginas
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'carrito') {
+                console.log('Carrito modificado desde otra página, actualizando tabla');
+                actualizarTablaCarrito();
+            }
+        });
+        
+        // Evento personalizado para capturar actualizaciones locales
+        window.addEventListener('carritoActualizado', function() {
+            console.log('Evento carritoActualizado recibido, actualizando tabla');
+            actualizarTablaCarrito();
+        });
+    });
+
+    // Función para actualizar la tabla del carrito
+    function actualizarTablaCarrito() {
+        console.log('Actualizando tabla del carrito');
+        
+        const tablaBody = document.querySelector('#tabla-carrito tbody');
+        const totalElemento = document.getElementById('carrito-total');
+        const inputHidden = document.getElementById('carrito_datos');
+        const btnFinalizarCompra = document.getElementById('finalizar-compra');
+        
+        if (!tablaBody || !totalElemento || !inputHidden || !btnFinalizarCompra) {
+            console.warn('No se encontraron elementos necesarios para actualizar la tabla');
+            return;
+        }
+        
+        let carrito = [];
+        try {
+            const carritoGuardado = localStorage.getItem('carrito');
+            carrito = carritoGuardado ? JSON.parse(carritoGuardado) : [];
+            if (!Array.isArray(carrito)) carrito = [];
+        } catch (e) {
+            console.error('Error al leer carrito:', e);
+            carrito = [];
+        }
+        
+        // Limpiar tabla
+        tablaBody.innerHTML = '';
+        
+        if (carrito.length === 0) {
+            tablaBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">El carrito está vacío.</td></tr>';
+            totalElemento.textContent = '0.00 €';
+            inputHidden.value = JSON.stringify([]);
+            btnFinalizarCompra.disabled = true;
+            return;
+        }
+        
+        // Calcular total y generar filas
+        let total = 0;
+        
+        carrito.forEach((item, index) => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>${item.nombre}</td>
+                <td class="text-end">${item.precio.toFixed(2)} €</td>
+                <td class="text-center">
+                    <div class="input-group input-group-sm">
+                        <button type="button" class="btn btn-outline-secondary btn-decrease" data-index="${index}">-</button>
+                        <input type="number" class="form-control text-center input-cantidad" value="${item.cantidad}" min="1" max="99" data-index="${index}">
+                        <button type="button" class="btn btn-outline-secondary btn-increase" data-index="${index}">+</button>
+                    </div>
+                </td>
+                <td class="text-end">${subtotal.toFixed(2)} €</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-danger eliminar-producto" data-index="${index}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+            tablaBody.appendChild(fila);
+        });
+        
+        // Actualizar total y campo oculto
+        totalElemento.textContent = total.toFixed(2) + ' €';
+        inputHidden.value = JSON.stringify(carrito);
+        btnFinalizarCompra.disabled = false;
+        
+        // Añadir eventos a los botones de eliminar
+        document.querySelectorAll('.eliminar-producto').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                
+                if (isNaN(index)) return;
+                
+                carrito.splice(index, 1);
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                
+                // Actualizar contador y tabla
+                actualizarContadorCarrito();
+                actualizarTablaCarrito();
+                
+                // Mostrar notificación
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Producto eliminado del carrito');
+                }
+            });
+        });
+        
+        // Añadir eventos a los botones de incrementar/decrementar
+        document.querySelectorAll('.btn-decrease').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                if (isNaN(index) || index < 0 || index >= carrito.length) return;
+                
+                if (carrito[index].cantidad > 1) {
+                    carrito[index].cantidad -= 1;
+                    localStorage.setItem('carrito', JSON.stringify(carrito));
+                    actualizarContadorCarrito();
+                    actualizarTablaCarrito();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.btn-increase').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                if (isNaN(index) || index < 0 || index >= carrito.length) return;
+                
+                carrito[index].cantidad += 1;
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                actualizarContadorCarrito();
+                actualizarTablaCarrito();
+            });
+        });
+        
+        // Añadir eventos a los inputs de cantidad
+        document.querySelectorAll('.input-cantidad').forEach(input => {
+            input.addEventListener('change', function() {
+                const index = parseInt(this.dataset.index);
+                if (isNaN(index) || index < 0 || index >= carrito.length) return;
+                
+                const cantidad = parseInt(this.value);
+                if (isNaN(cantidad) || cantidad < 1) {
+                    this.value = carrito[index].cantidad;
+                    return;
+                }
+                
+                carrito[index].cantidad = cantidad;
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                actualizarContadorCarrito();
+                actualizarTablaCarrito();
+            });
+        });
+    }
+
+    // Función para vaciar el carrito
+    function vaciarCarrito() {
+        localStorage.removeItem('carrito');
+        actualizarContadorCarrito();
+        actualizarTablaCarrito();
+        
+        // Mostrar notificación
+        if (typeof toastr !== 'undefined') {
+            toastr.success('Carrito vaciado correctamente');
+        }
+    }
+</script>
+{% endblock %}

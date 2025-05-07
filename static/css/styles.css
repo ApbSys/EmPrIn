@@ -1,0 +1,100 @@
+/* 
+ * Estilos personalizados para Store Componentes
+ */
+
+/* Estilos generales */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Estilos de la barra de navegación */
+.navbar-brand i {
+    color: #e9ecef;
+}
+
+/* Estilos para tarjetas de producto */
+.producto-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.producto-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.producto-imagen {
+    height: 180px;
+    object-fit: contain;
+    padding: 10px;
+}
+
+/* Estilos para las tarjetas de estadísticas */
+.estadistica-card {
+    height: 100%;
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+    margin: 10px auto;
+}
+
+/* Estilos para tablas y listas */
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* Estilos para formularios */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+/* Estilo para el footer */
+footer {
+    margin-top: auto;
+}
+
+footer a {
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Estilos para el carrito de compras */
+#carrito-contador {
+    font-size: 0.7rem;
+}
+
+/* Estilos para imprimir */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .card {
+        border: none;
+    }
+    
+    .card-header {
+        background-color: transparent !important;
+        color: black !important;
+    }
+}
